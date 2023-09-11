@@ -194,7 +194,7 @@ function App() {
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.strokeStyle = 'white';
-      ctx.lineWidth = 11;
+      ctx.lineWidth = 14;
       setDrawing(true);
       setPrevX(x);
       setPrevY(y);
