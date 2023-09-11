@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        #paint {
+            border: 2px solid #333;
+            background: #fff;
+            display: block;
+            margin: 20px auto;
+        }
+
+        #controllers {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controller {
+            display: inline-block;
+            background: #333;
+            color: #fff;
+            padding: 8px 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .controller:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>DRAW AI</h1>
+    <div id="controllers">
+        <span class="controller" id="undo">Undo</span>
+        <span class="controller" id="redo">Redo</span>
+        <span class="controller" id="pencil">Pencil</span>
+    </div>
+    <canvas width="500" height="500" id="paint"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const canvas = document.getElementById('paint');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const history = {
+                redo_list: [],
+                undo_list: [],
+                saveState: (canvas, list, keep_redo = false) => {
+                    if (!keep_redo) {
+                        history.redo_list = [];
+                    }
+                    (list || history.undo_list).push(canvas.toDataURL());
+                },
+                undo: () => {
+                    history.restoreState(history.undo_list, history.redo_list);
+                },
+                redo: () => {
+                    history.restoreState(history.redo_list, history.undo_list);
+                },
+                restoreState: (pop, push) => {
+                    if (pop.length) {
+                        history.saveState(canvas, push, true);
+                        const restore_state = pop.pop();
+                        const img = new Image();
+                        img.src = restore_state;
+                        img.onload = () => {
+                            ctx.clearRect(0, 0, 600, 400);
+                            ctx.drawImage(img, 0, 0, 600, 400, 0, 0, 600, 400);
+                        };
+                    }
+                },
+            };
+            const pencil = {
+                options: {
+                    stroke_color: 'white',
+                    dim: 10,
+                },
+                init: () => {
+                    canvas.addEventListener('mousedown', pencil.start);
+                    canvas.addEventListener('mousemove', pencil.stroke);
+                    canvas.addEventListener('mouseup', pencil.stopAndSave);
+                    canvas.addEventListener('mouseout', pencil.stop);
+                },
+                start: (evt) => {
+                    const x = evt.pageX - canvas.getBoundingClientRect().left;
+                    const y = evt.pageY - canvas.getBoundingClientRect().top;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.strokeStyle = pencil.options.stroke_color;
+                    ctx.lineWidth = pencil.options.dim;
+                    history.saveState(canvas);
+                    pencil.drawing = true;
+                },
+                stroke: (evt) => {
+                    if (pencil.drawing) {
+                        const x = evt.pageX - canvas.getBoundingClientRect().left;
+                        const y = evt.pageY - canvas.getBoundingClientRect().top;
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                    }
+                },
+                stop: () => {
+                    if (pencil.drawing) pencil.drawing = false;
+                },
+                stopAndSave: () => {
+                    var id = "paint";
+                    var canvasElement = document.getElementById(id);
+                    var MIME_TYPE = "image/png";
+
+                    var imgURL = canvasElement.toDataURL(MIME_TYPE);
+
+                    var dlLink = document.createElement('a');
+                    dlLink.download = "sunny";
+                    dlLink.href = imgURL;
+                    dlLink.dataset.downloadurl = [MIME_TYPE, dlLink.download, dlLink.href].join(':');
+
+                    document.body.appendChild(dlLink);
+                    dlLink.click();
+                    document.body.removeChild(dlLink);
+                    if (pencil.drawing) pencil.drawing = false;
+
+                }
+            };
+
+            document.getElementById('pencil').addEventListener('click', pencil.init);
+            document.getElementById('undo').addEventListener('click', history.undo);
+            document.getElementById('redo').addEventListener('click', history.redo);
+        });
+    </script>
+</body>
+
+</html>
